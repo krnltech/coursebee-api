@@ -1,0 +1,87 @@
+const router = require("express").Router();
+const bcrypt = require("bcrypt");
+const Mentor = require("../models/mentor");
+
+router.post("/register", async (req, res) => {
+  try {
+    const mentor = await Mentor.findOne({ email: req.body.email });
+    if (mentor) {
+      res.json({
+        success: false,
+        message: `Mentor already registered with email ${req.body.email}`,
+      });
+    } else {
+      const saltRounds = 10;
+      let tempmentor = req.body;
+      bcrypt.genSalt(saltRounds, async (err, salt) => {
+        if (err) {
+          res.json({ success: false, message: err.message });
+        } else {
+          bcrypt.hash(tempmentor.password, salt, async (err, hash) => {
+            if (err) {
+              res.json({ success: false, message: err.message });
+            } else {
+              tempmentor.password = hash;
+              const mentor = new Mentor(tempmentor);
+              await mentor.save();
+              res.json({
+                success: true,
+                message: `Mentor successfully registered with email ${req.body.email}`,
+              });
+            }
+          });
+        }
+      });
+    }
+  } catch (error) {
+    res.json({ success: false, message: error.message });
+  }
+});
+
+router.post("/login", async (req, res) => {
+  try {
+    const mentor = await Mentor.findOne({ email: req.body.email });
+    if (mentor) {
+      bcrypt.compare(req.body.password, mentor.password, (err, result) => {
+        if (err) {
+          res.json({ success: false, message: err.message });
+        } else {
+          if (result) {
+            var token = jwt.sign(
+              {
+                user: {
+                  fullname: mentor.fullname,
+                  email: mentor.email,
+                  id: mentor._id,
+                  type: "mentor",
+                },
+              },
+              process.env.JWTSECRET
+            );
+            res.json({
+              success: true,
+              message: `Successfully logged in as mentor ${mentor.fullname}`,
+              username: mentor.fullname,
+              token: token,
+              uid: mentor._id,
+            });
+          } else {
+            res.json({
+              success: false,
+              message: `Password does not match`,
+            });
+          }
+        }
+      });
+    } else {
+      res.json({
+        success: false,
+        message: `No user found with email ${req.body.email}`,
+      });
+    }
+  } catch (error) {
+    res.json({ success: false, message: error.message });
+  }
+});
+
+module.exports = router;
