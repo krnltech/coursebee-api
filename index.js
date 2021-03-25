@@ -18,6 +18,7 @@ mongoose
   .connect(process.env.DBURL, {
     useNewUrlParser: true,
     useUnifiedTopology: true,
+    useCreateIndex: true,
   })
   .then(() => {
     console.log("Database is up and running");
