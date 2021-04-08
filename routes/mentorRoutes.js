@@ -1,7 +1,8 @@
 const router = require("express").Router();
 const bcrypt = require("bcrypt");
 const Mentor = require("../models/mentor");
-const jwt = require('jsonwebtoken');
+const Course = require("../models/course");
+const jwt = require("jsonwebtoken");
 
 router.post("/register", async (req, res) => {
   try {
@@ -80,6 +81,47 @@ router.post("/login", async (req, res) => {
         message: `No user found with email ${req.body.email}`,
       });
     }
+  } catch (error) {
+    res.json({ success: false, message: error.message });
+  }
+});
+
+router.post("/addcourse", async (req, res) => {
+  try {
+    const course = new Course(req.body);
+    await course.save();
+    res.json({ success: true, message: `Successfully added ${course.name}` });
+  } catch (error) {
+    res.json({ success: false, message: error.message });
+  }
+});
+
+router.post("/addsection/:courseid", async (req, res) => {
+  try {
+    const course = await Course.updateOne(
+      { _id: req.params.courseid },
+      { $push: { section: req.body } }
+    );
+    res.json({
+      success: true,
+      message: `Successfully added section: ${req.body.name} to course: ${course.name}`,
+    });
+  } catch (error) {
+    res.json({ success: false, message: error.message });
+  }
+});
+
+router.post("/addcontent/:courseid/:sectionid", async (req, res) => {
+  try {
+    let sid = "section." + req.params.sectionid + ".contents";
+    const course = await Course.updateOne(
+      { _id: req.params.courseid },
+      { $push: { sid: req.body } }
+    );
+    res.json({
+      success: true,
+      message: `Successfully added section: ${req.body.name} to course: ${course.name}`,
+    });
   } catch (error) {
     res.json({ success: false, message: error.message });
   }
